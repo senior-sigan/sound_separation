@@ -1,0 +1,11 @@
+stempeg
+soundfile
+scikit-image
+h5py
+keras
+tensorflow
+scipy
+numpy
+sklearn
+pandas
+tqdm
