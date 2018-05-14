@@ -144,7 +144,6 @@ Temporary Items
 ######################
 .idea
 data
-models
 output
 weights
 submissions
