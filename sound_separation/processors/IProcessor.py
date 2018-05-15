@@ -5,5 +5,5 @@ from abc import abstractmethod
 
 class IProcessor:
     @abstractmethod
-    def process(self, fname):
+    def process(self, data):
         pass

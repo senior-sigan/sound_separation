@@ -6,8 +6,8 @@ import os
 from keras import Input, metrics, layers
 from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau
 from keras.engine import Model, Layer
-from keras.layers import Dense, K, regularizers, BatchNormalization, Activation, MaxPooling1D, GlobalAveragePooling1D, \
-    Conv1D, Lambda
+from keras.layers import Dense, K, regularizers, BatchNormalization, Activation, MaxPooling2D, GlobalAveragePooling2D, \
+    Conv2D, Lambda
 from keras.optimizers import Adam
 
 from .classifier import Classifier
@@ -33,7 +33,7 @@ class ResNetClassifier(Classifier):
         bn_name_base = 'bn' + str(stage) + str(block) + '_branch'
 
         with K.name_scope(name='identity_{}_{}'.format(stage, block)):
-            x = Conv1D(name=conv_name_base + '2a',
+            x = Conv2D(name=conv_name_base + '2a',
                        filters=filters,
                        kernel_size=kernel_size,
                        strides=strides,
@@ -44,7 +44,7 @@ class ResNetClassifier(Classifier):
             x = BatchNormalization(name=bn_name_base + '2a')(x)
             x = Activation('relu')(x)
 
-            x = Conv1D(name=conv_name_base + '2b',
+            x = Conv2D(name=conv_name_base + '2b',
                        filters=filters,
                        kernel_size=kernel_size,
                        strides=strides,
@@ -58,8 +58,8 @@ class ResNetClassifier(Classifier):
             # otherwise it's a mismatch. Recommendation of the authors.
             # here we x2 the number of filters.
             # See that as duplicating everything and concatenate them.
-            if input_tensor.shape[2] != x.shape[2]:
-                x = layers.add([x, Lambda(lambda y: K.repeat_elements(y, rep=2, axis=2))(input_tensor)])
+            if input_tensor.shape[3] != x.shape[3]:
+                x = layers.add([x, Lambda(lambda y: K.repeat_elements(y, rep=2, axis=3))(input_tensor)])
             else:
                 x = layers.add([x, input_tensor])
             x = BatchNormalization()(x)
@@ -71,7 +71,7 @@ class ResNetClassifier(Classifier):
         inputs = Input(shape=self.input_shape, dtype='float32')
         x = inputs
 
-        x = Conv1D(filters=48,
+        x = Conv2D(filters=48,
                    kernel_size=160,
                    strides=4,
                    padding='same',
@@ -79,23 +79,23 @@ class ResNetClassifier(Classifier):
                    kernel_regularizer=regularizers.l2(l=0.0001))(x)
         x = BatchNormalization()(x)
         x = Activation('relu')(x)
-        x = MaxPooling1D(pool_size=2, strides=None)(x)
+        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2))(x)
 
         for i in range(3):
             x = self._identity_layer(x, filters=48, kernel_size=3, strides=1, stage=1, block=i)
-        x = MaxPooling1D(pool_size=4, strides=None)(x)
+        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2))(x)
 
         for i in range(4):
             x = self._identity_layer(x, filters=96, kernel_size=3, strides=1, stage=2, block=i)
-        x = MaxPooling1D(pool_size=4, strides=None)(x)
+        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2))(x)
 
         for i in range(6):
             x = self._identity_layer(x, filters=192, kernel_size=3, strides=1, stage=3, block=i)
-        x = MaxPooling1D(pool_size=4, strides=None)(x)
+        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2))(x)
 
         for i in range(3):
             x = self._identity_layer(x, filters=384, kernel_size=3, strides=1, stage=4, block=i)
-        x = GlobalAveragePooling1D()(x)
+        x = GlobalAveragePooling2D()(x)
 
         x = Dense(len(self.labels), activation='softmax')(x)
 
